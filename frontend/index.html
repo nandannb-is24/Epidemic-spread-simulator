@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Epidemic Spread Simulator — Algorithm Visualization Lab</title>
+  <meta name="description"
+        content="Interactive algorithm visualization for Brandes' betweenness centrality, BFS, DFS, Dijkstra, 0/1 Knapsack DP, Greedy, and SIR epidemic simulation on real contact graphs." />
+
+  <!-- Design system -->
+  <link rel="stylesheet" href="/static/css/style.css" />
+
+  <!-- D3.js v7 -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <!-- Chart.js v4 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <!-- Leaflet.js (Geo Mapping) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<div id="app">
+
+  <!-- ======================================================
+       Sidebar Navigation
+       ====================================================== -->
+  <nav id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-wordmark">
+        <span class="wordmark-epi">Epidemic</span>
+        <span class="wordmark-sim">Spread Simulator</span>
+      </div>
+    </div>
+
+    <div class="sidebar-nav">
+      <div class="nav-section-label">Navigation</div>
+
+      <div class="nav-item active" data-section="overview" id="nav-overview">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="9" rx="1"/>
+            <rect x="14" y="3" width="7" height="5" rx="1"/>
+            <rect x="14" y="12" width="7" height="9" rx="1"/>
+            <rect x="3" y="16" width="7" height="5" rx="1"/>
+          </svg>
+        </span>
+        <span>Overview</span>
+      </div>
+      <div class="nav-item" data-section="graph-builder" id="nav-graph-builder">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/>
+            <line x1="5" y1="8" x2="12" y2="16"/><line x1="19" y1="8" x2="12" y2="16"/><line x1="7" y1="6" x2="17" y2="6"/>
+          </svg>
+        </span>
+        <span>Graph Builder</span>
+      </div>
+
+      <div class="nav-section-label" style="margin-top:8px">Algorithm Labs</div>
+
+      <div class="nav-item" data-section="centrality" id="nav-centrality">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="9"/>
+            <line x1="12" y1="3" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="21"/>
+            <line x1="3" y1="12" x2="8" y2="12"/><line x1="16" y1="12" x2="21" y2="12"/>
+          </svg>
+        </span>
+        <span>Centrality Lab</span>
+        <span class="nav-badge">Core</span>
+      </div>
+      <div class="nav-item" data-section="pathfinding" id="nav-pathfinding">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12h4l3-9 4 18 3-9h4"/>
+          </svg>
+        </span>
+        <span>Pathfinding Lab</span>
+      </div>
+      <div class="nav-item" data-section="intervention" id="nav-intervention">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </span>
+        <span>Intervention</span>
+      </div>
+      <div class="nav-item" data-section="simulation" id="nav-simulation">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+        </span>
+        <span>SIR Simulation</span>
+      </div>
+      <div class="nav-item" data-section="geo-map" id="nav-geo-map">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+        </span>
+        <span>Geo Map Lab</span>
+      </div>
+      <div class="nav-item" data-section="concept-map" id="nav-concept-map">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+          </svg>
+        </span>
+        <span>Concept Map</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ======================================================
+       Main Content
+       ====================================================== -->
+  <main id="main">
+
+    <!-- Global Top Bar with Theme Toggle -->
+    <div id="top-bar">
+      <div class="top-bar-right">
+        <button id="theme-toggle-btn" class="theme-toggle-pill" title="Toggle theme" aria-label="Toggle dark/light mode">
+          <span class="theme-toggle-content">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <span>Light</span>
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- =================== OVERVIEW ====================== -->
+    <section class="section-panel active" id="section-overview">
+      <div style="flex:1;overflow-y:auto;padding:var(--space-8)">
+        <div class="overview-hero anim-fadein">
+          <div class="hero-tag">Algorithm Visualization Lab</div>
+          <h2>Modeling Disease Spread<br>with <span>Graph Algorithms</span></h2>
+          <p>
+            This lab visualizes how classical graph algorithms operate on real contact networks, using epidemic
+            spread as a concrete, intuitive backdrop. Every screen foregrounds <em>how</em> the
+            algorithm works, step by step.
+          </p>
+          <p>
+            The centerpiece is <strong style="color:var(--gold)">Brandes' betweenness centrality</strong>,
+            an O(V&middot;E) algorithm for identifying the highest-traffic hub nodes in a network
+            (the &ldquo;super-spreaders&rdquo;). It runs a BFS from every vertex and accumulates
+            dependency scores in a backward pass.
+          </p>
+
+        </div>
+
+        <div class="lab-cards anim-fadein">
+          <div class="lab-card centerpiece" data-goto="centrality">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="9"/>
+                <line x1="12" y1="3" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="21"/>
+                <line x1="3" y1="12" x2="8" y2="12"/><line x1="16" y1="12" x2="21" y2="12"/>
+              </svg>
+            </div>
+            <h3>Centrality Lab</h3>
+            <p>Brandes' betweenness centrality: BFS frontier animation, dependency back-propagation,
+               live running scores, and a super-spreader leaderboard.</p>
+            <div class="card-complexity">O(V&middot;E)</div>
+          </div>
+          <div class="lab-card" data-goto="graph-builder">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/>
+                <line x1="5" y1="8" x2="12" y2="16"/><line x1="19" y1="8" x2="12" y2="16"/><line x1="7" y1="6" x2="17" y2="6"/>
+              </svg>
+            </div>
+            <h3>Graph Builder</h3>
+            <p>Generate Erdos-Renyi or Barabasi-Albert contact networks, or upload your own adjacency list.</p>
+            <div class="card-complexity">networkx + spring layout</div>
+          </div>
+          <div class="lab-card" data-goto="pathfinding">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12h4l3-9 4 18 3-9h4"/>
+              </svg>
+            </div>
+            <h3>Pathfinding Lab</h3>
+            <p>BFS vs. DFS side-by-side outbreak wavefront tracing. Dijkstra's fastest infection path between two nodes.</p>
+            <div class="card-complexity">BFS/DFS O(V+E) &middot; Dijkstra O((V+E)logV)</div>
+          </div>
+          <div class="lab-card" data-goto="intervention">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </div>
+            <h3>Intervention Optimizer</h3>
+            <p>0/1 Knapsack DP vs. Greedy centrality-ranked vaccination: animated DP table, approximation gap comparison.</p>
+            <div class="card-complexity">DP O(N&middot;W) &middot; Greedy O(N log N)</div>
+          </div>
+          <div class="lab-card" data-goto="simulation">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+            </div>
+            <h3>SIR Simulation</h3>
+            <p>Stochastic discrete-time SIR on the contact graph. Before/after intervention comparison.</p>
+            <div class="card-complexity">β, γ parameters</div>
+          </div>
+          <div class="lab-card" data-goto="concept-map">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+              </svg>
+            </div>
+            <h3>Concept Map</h3>
+            <p>Full mapping of every DAA/DMS concept (BFS/DFS, Dijkstra, DP, Greedy, Graph theory, Probability...) to its lab section.</p>
+            <div class="card-complexity">Evaluator-friendly reference</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================== GRAPH BUILDER ================== -->
+    <section class="section-panel" id="section-graph-builder">
+      <div class="section-header">
+        <div class="section-header-left">
+          <div class="section-header-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/>
+              <line x1="5" y1="8" x2="12" y2="16"/><line x1="19" y1="8" x2="12" y2="16"/><line x1="7" y1="6" x2="17" y2="6"/>
+            </svg>
+          </div>
+          <h2>Graph Builder</h2>
+        </div>
+        <div id="graph-builder-status" class="text-sm text-muted"></div>
+      </div>
+      <div class="info-banner">
+        <div class="dot"></div>
+        Generate a contact network or upload your own. The same graph is used across all labs.
+      </div>
+      <div class="lab-layout">
+        <div class="lab-graph-pane" id="graph-builder-canvas">
+          <div class="phase-overlay" id="gb-overlay">No graph loaded</div>
+          <svg id="gb-svg" class="graph-svg"></svg>
+        </div>
+        <div class="lab-control-pane">
+          <div class="ctrl-section">
+            <h3>Generate Graph</h3>
+            <div class="form-row">
+              <label>Graph Type</label>
+              <select id="gb-type">
+                <option value="barabasi_albert">Barabasi-Albert (hub-forming)</option>
+                <option value="erdos_renyi">Erdos-Renyi (random)</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>Nodes (n) <span class="val-display" id="gb-n-val">20</span></label>
+              <input type="range" id="gb-n" min="6" max="60" value="20" />
+            </div>
+            <div class="form-row" id="gb-m-row">
+              <label>Attach edges (m) <span class="val-display" id="gb-m-val">2</span></label>
+              <input type="range" id="gb-m" min="1" max="6" value="2" />
+            </div>
+            <div class="form-row" id="gb-p-row" style="display:none">
+              <label>Edge probability (p) <span class="val-display" id="gb-p-val">0.20</span></label>
+              <input type="range" id="gb-p" min="0.05" max="0.80" step="0.05" value="0.20" />
+            </div>
+            <div class="form-row">
+              <label>Seed <span class="val-display" id="gb-seed-val">42</span></label>
+              <input type="range" id="gb-seed" min="1" max="200" value="42" />
+            </div>
+            <button class="btn btn-primary full-width" id="gb-generate-btn">
+              Generate Graph
+            </button>
+          </div>
+          <div class="ctrl-section">
+            <h3>Upload Custom Graph</h3>
+            <p class="text-sm text-muted mb-3">
+              Paste edge list: one row per edge, format: <code class="text-mono">u v [weight]</code>
+            </p>
+            <textarea id="gb-upload-text"
+              style="width:100%;height:100px;background:var(--bg-overlay);border:1px solid var(--border);
+                     border-radius:var(--radius-sm);color:var(--text-primary);font-family:var(--font-mono);
+                     font-size:11px;padding:8px;resize:vertical;outline:none;"
+              placeholder="0 1 3&#10;0 2 5&#10;1 3 2&#10;..."></textarea>
+            <button class="btn full-width mt-2" id="gb-upload-btn">Upload Graph</button>
+          </div>
+          <div class="ctrl-section">
+            <h3>Graph Info</h3>
+            <div class="stat-grid">
+              <div class="stat-card"><div class="stat-label">Nodes</div><div class="stat-value" id="gb-stat-nodes">&mdash;</div></div>
+              <div class="stat-card"><div class="stat-label">Edges</div><div class="stat-value" id="gb-stat-edges">&mdash;</div></div>
+            </div>
+            <p class="text-xs text-muted">Drag nodes to reposition. Scroll to zoom. Node costs (for DP lab) shown in brackets.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================== CENTRALITY LAB ================== -->
+    <section class="section-panel" id="section-centrality">
+      <div class="section-header">
+        <div class="section-header-left">
+          <div class="section-header-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="9"/>
+              <line x1="12" y1="3" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="21"/>
+              <line x1="3" y1="12" x2="8" y2="12"/><line x1="16" y1="12" x2="21" y2="12"/>
+            </svg>
+          </div>
+          <h2>Centrality Lab</h2>
+          <span class="complexity-badge">O(V·E)</span>
+        </div>
+        <div id="centrality-phase-label" class="text-sm" style="color:var(--gold)"></div>
+      </div>
+      <div class="info-banner">
+        <div class="dot"></div>
+        Brandes' algorithm: BFS from every source vertex accumulates sigma (shortest-path counts), then backward pass propagates delta (dependency) to build betweenness centrality scores.
+      </div>
+      <div class="lab-layout">
+        <div class="lab-graph-pane" id="centrality-canvas">
+          <div class="phase-overlay hidden" id="centrality-overlay"></div>
+          <svg id="centrality-svg" class="graph-svg"></svg>
+        </div>
+        <div class="lab-control-pane">
+          <div class="ctrl-section">
+            <h3>Mode</h3>
+            <div class="toggle-group">
+              <button class="toggle-btn active" id="centrality-mode-single" data-mode="single">Single Source</button>
+              <button class="toggle-btn" id="centrality-mode-full" data-mode="full">Full Algorithm</button>
+            </div>
+            <div class="form-row" id="centrality-source-row">
+              <label>Source node</label>
+              <select id="centrality-source-select"></select>
+            </div>
+          </div>
+
+          <div class="ctrl-section">
+            <h3>Playback</h3>
+            <div class="playback-controls">
+              <button class="btn btn-icon" id="c-btn-back" title="Step back">&#x23EE;</button>
+              <button class="btn btn-icon btn-primary" id="c-btn-play" title="Play/Pause">&#x25B6;</button>
+              <button class="btn btn-icon" id="c-btn-fwd" title="Step forward">&#x23ED;</button>
+              <button class="btn btn-icon" id="c-btn-reset" title="Reset">&#x21BA;</button>
+            </div>
+            <div class="form-row">
+              <label>Speed <span class="val-display" id="c-speed-val">300ms</span></label>
+              <input type="range" id="c-speed" min="50" max="1000" step="50" value="300" />
+            </div>
+            <div class="frame-counter" id="c-frame-counter">Frame 0 / 0</div>
+          </div>
+
+          <div class="ctrl-section">
+            <h3>Run</h3>
+            <button class="btn btn-primary full-width" id="c-run-btn">Run Brandes</button>
+          </div>
+
+          <div class="ctrl-section">
+            <div class="complexity-callout">
+              <div class="complexity-title">Time Complexity</div>
+              <div class="complexity-value">O(V · E)</div>
+              <div class="complexity-note" id="c-complexity-note">V BFS runs, each O(E). Backward pass adds O(V+E) per source.</div>
+            </div>
+          </div>
+
+          <div class="ctrl-section">
+            <h3>Live Centrality Scores</h3>
+            <div class="chart-container">
+              <canvas id="centrality-bar-chart"></canvas>
+            </div>
+          </div>
+
+          <div class="ctrl-section">
+            <h3>Super-Spreader Leaderboard</h3>
+            <div class="leaderboard" id="centrality-leaderboard">
+              <div class="text-sm text-muted">Run Brandes to see rankings...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================== PATHFINDING LAB ================= -->
+    <section class="section-panel" id="section-pathfinding">
+      <div class="section-header">
+        <div class="section-header-left">
+          <div class="section-header-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12h4l3-9 4 18 3-9h4"/>
+            </svg>
+          </div>
+          <h2>Pathfinding Lab</h2>
+          <span class="complexity-badge" id="pf-complexity-badge">O(V+E)</span>
+        </div>
+      </div>
+      <div class="info-banner">
+        <div class="dot"></div>
+        BFS/DFS side-by-side for outbreak wavefront tracing · Dijkstra for fastest infection path
+      </div>
+
+      <!-- Sub-tab toggle -->
+      <div style="padding:var(--space-3) var(--space-6);border-bottom:1px solid var(--border);background:var(--bg-surface);flex-shrink:0">
+        <div class="toggle-group" style="max-width:400px">
+          <button class="toggle-btn active" id="pf-tab-bfsdfs">BFS vs DFS</button>
+          <button class="toggle-btn" id="pf-tab-dijkstra">Dijkstra</button>
+        </div>
+      </div>
+
+      <!-- BFS / DFS panel -->
+      <div id="pf-bfsdfs-panel" class="lab-layout" style="flex:1">
+        <div class="lab-graph-pane" style="display:flex;gap:0;overflow:hidden">
+          <div style="flex:1;position:relative;border-right:1px solid var(--border)">
+            <div class="phase-overlay" style="top:8px;left:8px;padding:4px 10px;font-size:11px">BFS</div>
+            <svg id="bfs-svg" class="graph-svg"></svg>
+          </div>
+          <div style="flex:1;position:relative">
+            <div class="phase-overlay" style="top:8px;left:8px;padding:4px 10px;font-size:11px">DFS</div>
+            <svg id="dfs-svg" class="graph-svg"></svg>
+          </div>
+        </div>
+        <div class="lab-control-pane">
+          <div class="ctrl-section">
+            <h3>Parameters</h3>
+            <div class="form-row">
+              <label>Source Node</label>
+              <select id="pf-source-select"></select>
+            </div>
+            <button class="btn btn-primary full-width" id="pf-run-btn">Run BFS &amp; DFS</button>
+          </div>
+          <div class="ctrl-section">
+            <h3>Playback</h3>
+            <div class="playback-controls">
+              <button class="btn btn-icon" id="pf-btn-back">&#x23EE;</button>
+              <button class="btn btn-icon btn-primary" id="pf-btn-play">&#x25B6;</button>
+              <button class="btn btn-icon" id="pf-btn-fwd">&#x23ED;</button>
+              <button class="btn btn-icon" id="pf-btn-reset">&#x21BA;</button>
+            </div>
+            <div class="form-row">
+              <label>Speed <span class="val-display" id="pf-speed-val">300ms</span></label>
+              <input type="range" id="pf-speed" min="50" max="1200" step="50" value="300" />
+            </div>
+            <div class="frame-counter" id="pf-frame-counter">Frame 0 / 0</div>
+          </div>
+          <div class="ctrl-section">
+            <div class="complexity-callout">
+              <div class="complexity-title">BFS &amp; DFS Complexity</div>
+              <div class="complexity-value">O(V + E)</div>
+              <div class="complexity-note">Each vertex and edge is processed at most once.</div>
+            </div>
+          </div>
+          <div class="ctrl-section">
+            <h3>BFS Visit Order</h3>
+            <div id="bfs-visit-order" class="text-mono text-sm text-muted">&mdash;</div>
+          </div>
+          <div class="ctrl-section">
+            <h3>DFS Visit Order</h3>
+            <div id="dfs-visit-order" class="text-mono text-sm text-muted">&mdash;</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dijkstra panel -->
+      <div id="pf-dijkstra-panel" class="lab-layout" style="flex:1;display:none">
+        <div class="lab-graph-pane" id="dijkstra-canvas">
+          <svg id="dijkstra-svg" class="graph-svg"></svg>
+        </div>
+        <div class="lab-control-pane">
+          <div class="ctrl-section">
+            <h3>Parameters</h3>
+            <div class="form-row">
+              <label>Source Node</label>
+              <select id="dijk-source-select"></select>
+            </div>
+            <div class="form-row">
+              <label>Target Node</label>
+              <select id="dijk-target-select"></select>
+            </div>
+            <button class="btn btn-primary full-width" id="dijk-run-btn">Run Dijkstra</button>
+          </div>
+          <div class="ctrl-section">
+            <h3>Playback</h3>
+            <div class="playback-controls">
+              <button class="btn btn-icon" id="dijk-btn-back">&#x23EE;</button>
+              <button class="btn btn-icon btn-primary" id="dijk-btn-play">&#x25B6;</button>
+              <button class="btn btn-icon" id="dijk-btn-fwd">&#x23ED;</button>
+              <button class="btn btn-icon" id="dijk-btn-reset">&#x21BA;</button>
+            </div>
+            <div class="form-row">
+              <label>Speed <span class="val-display" id="dijk-speed-val">300ms</span></label>
+              <input type="range" id="dijk-speed" min="50" max="1200" step="50" value="300" />
+            </div>
+            <div class="frame-counter" id="dijk-frame-counter">Frame 0 / 0</div>
+          </div>
+          <div class="ctrl-section">
+            <div class="complexity-callout">
+              <div class="complexity-title">Dijkstra Complexity</div>
+              <div class="complexity-value">O((V+E) log V)</div>
+              <div class="complexity-note">Binary min-heap: each relaxation costs O(log V).</div>
+            </div>
+          </div>
+          <div class="ctrl-section">
+            <h3>Shortest Path</h3>
+            <div id="dijk-path-display" class="text-mono text-sm text-muted">&mdash;</div>
+            <div id="dijk-dist-display" class="text-sm text-muted mt-2"></div>
+          </div>
+          <div class="ctrl-section">
+            <h3>Priority Queue</h3>
+            <div id="dijk-heap-display" class="text-mono text-xs text-muted" style="max-height:120px;overflow-y:auto">&mdash;</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================ INTERVENTION LAB ================= -->
+    <section class="section-panel" id="section-intervention">
+      <div class="section-header">
+        <div class="section-header-left">
+          <div class="section-header-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <h2>Intervention Optimizer</h2>
+        </div>
+      </div>
+      <div class="info-banner">
+        <div class="dot"></div>
+        Budget-constrained node vaccination: 0/1 Knapsack DP (optimal) vs. Greedy centrality selection (approximate)
+      </div>
+      <div class="lab-layout" style="overflow:auto">
+        <!-- Left: two side-by-side panels -->
+        <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+          <div style="display:flex;flex:1;overflow:hidden">
+            <!-- DP panel -->
+            <div style="flex:1;padding:var(--space-4);border-right:1px solid var(--border);overflow-y:auto">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3)">
+                <h3 style="font-size:13px;font-weight:700;color:var(--blue)">0/1 Knapsack DP</h3>
+                <span class="text-mono text-xs text-muted">O(N·W)</span>
+              </div>
+              <div class="dp-table-wrap" id="dp-table-container">
+                <div class="text-sm text-muted">Run to see DP table...</div>
+              </div>
+              <div class="mt-3">
+                <div class="text-xs text-muted mb-2">Selected Nodes (optimal)</div>
+                <div id="dp-selected-nodes" class="text-mono text-sm text-muted">&mdash;</div>
+                <div class="stat-grid mt-3">
+                  <div class="stat-card accent-blue">
+                    <div class="stat-label">Total Value</div>
+                    <div class="stat-value" id="dp-total-value">&mdash;</div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-label">Total Cost</div>
+                    <div class="stat-value" id="dp-total-cost">&mdash;</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Greedy panel -->
+            <div style="flex:1;padding:var(--space-4);overflow-y:auto">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3)">
+                <h3 style="font-size:13px;font-weight:700;color:var(--orange)">Greedy (Centrality-Ranked)</h3>
+                <span class="text-mono text-xs text-muted">O(N log N)</span>
+              </div>
+              <div id="greedy-ranked-list" style="display:flex;flex-direction:column;gap:4px;max-height:220px;overflow-y:auto">
+                <div class="text-sm text-muted">Run to see ranked selection...</div>
+              </div>
+              <div class="mt-3">
+                <div class="text-xs text-muted mb-2">Selected Nodes (greedy)</div>
+                <div id="greedy-selected-nodes" class="text-mono text-sm text-muted">&mdash;</div>
+                <div class="stat-grid mt-3">
+                  <div class="stat-card accent-gold">
+                    <div class="stat-label">Total Value</div>
+                    <div class="stat-value" id="greedy-total-value">&mdash;</div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-label">Total Cost</div>
+                    <div class="stat-value" id="greedy-total-cost">&mdash;</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Comparison chart (bottom) -->
+          <div style="padding:var(--space-4);border-top:1px solid var(--border);background:var(--bg-surface)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3)">
+              <h3 style="font-size:13px;font-weight:700;color:var(--text-heading)">Strategy Comparison</h3>
+              <span class="text-xs text-muted">Optimality gap: DP >= Greedy (guaranteed)</span>
+            </div>
+            <div class="chart-container" style="height:120px">
+              <canvas id="intervention-compare-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: controls -->
+        <div class="lab-control-pane">
+          <div class="ctrl-section">
+            <h3>Parameters</h3>
+            <div class="form-row">
+              <label>Budget (W) <span class="val-display" id="iv-budget-val">10</span></label>
+              <input type="range" id="iv-budget" min="2" max="40" value="10" />
+            </div>
+            <p class="text-xs text-muted mb-3">Node costs are assigned randomly (1-5). Values = betweenness centrality scores.</p>
+            <button class="btn btn-primary full-width" id="iv-run-btn">Run Both Strategies</button>
+          </div>
+
+          <div class="ctrl-section">
+            <h3>DP Playback</h3>
+            <div class="playback-controls">
+              <button class="btn btn-icon" id="iv-btn-back">&#x23EE;</button>
+              <button class="btn btn-icon btn-primary" id="iv-btn-play">&#x25B6;</button>
+              <button class="btn btn-icon" id="iv-btn-fwd">&#x23ED;</button>
+              <button class="btn btn-icon" id="iv-btn-reset">&#x21BA;</button>
+            </div>
+            <div class="form-row">
+              <label>Speed <span class="val-display" id="iv-speed-val">80ms</span></label>
+              <input type="range" id="iv-speed" min="20" max="500" step="20" value="80" />
+            </div>
+            <div class="frame-counter" id="iv-frame-counter">Frame 0 / 0</div>
+          </div>
+
+          <div class="ctrl-section">
+            <div class="complexity-callout">
+              <div class="complexity-title">DP Complexity</div>
+              <div class="complexity-value">O(N · W)</div>
+              <div class="complexity-note">N items x W budget cells. Pseudo-polynomial. Guarantees optimal solution.</div>
+            </div>
+          </div>
+          <div class="ctrl-section">
+            <div class="complexity-callout" style="border-left-color:var(--orange)">
+              <div class="complexity-title">Greedy Complexity</div>
+              <div class="complexity-value" style="color:var(--orange)">O(N log N)</div>
+              <div class="complexity-note">Dominated by sorting. Does NOT guarantee optimal — demonstrates approximation gap.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================ SIR SIMULATION ================== -->
+    <section class="section-panel" id="section-simulation">
+      <div class="section-header">
+        <div class="section-header-left">
+          <div class="section-header-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+          </div>
+          <h2>SIR Epidemic Simulation</h2>
+        </div>
+        <div id="sim-status-label" class="text-sm text-muted"></div>
+      </div>
+      <div class="info-banner">
+        <div class="dot"></div>
+        Stochastic discrete-time SIR: S to I with probability beta per infected neighbour, I to R with probability gamma per step
+      </div>
+      <div class="lab-layout">
+        <div class="lab-graph-pane" id="sim-canvas">
+          <svg id="sim-svg" class="graph-svg"></svg>
+        </div>
+        <div class="lab-control-pane">
+          <div class="ctrl-section">
+            <h3>Parameters</h3>
+            <div class="form-row">
+              <label>Beta (transmission) <span class="val-display" id="sim-beta-val">0.30</span></label>
+              <input type="range" id="sim-beta" min="0.05" max="1.0" step="0.05" value="0.30" />
+            </div>
+            <div class="form-row">
+              <label>Gamma (recovery) <span class="val-display" id="sim-gamma-val">0.10</span></label>
+              <input type="range" id="sim-gamma" min="0.01" max="0.5" step="0.01" value="0.10" />
+            </div>
+            <div class="form-row">
+              <label>Seed Node (patient zero)</label>
+              <select id="sim-seed-select"></select>
+            </div>
+            <div class="form-row">
+              <label>Animation speed <span class="val-display" id="sim-speed-val">400ms</span></label>
+              <input type="range" id="sim-speed" min="100" max="1500" step="100" value="400" />
+            </div>
+          </div>
+
+          <div class="ctrl-section">
+            <div style="display:flex;gap:var(--space-2);flex-direction:column">
+              <button class="btn btn-danger full-width" id="sim-run-btn">Run Without Intervention</button>
+              <button class="btn btn-gold full-width" id="sim-run-iv-btn">Run With DP Vaccination</button>
+            </div>
+          </div>
+
+          <div class="ctrl-section">
+            <h3>Playback</h3>
+            <div class="playback-controls">
+              <button class="btn btn-icon" id="sim-btn-back">&#x23EE;</button>
+              <button class="btn btn-icon btn-primary" id="sim-btn-play">&#x25B6;</button>
+              <button class="btn btn-icon" id="sim-btn-fwd">&#x23ED;</button>
+              <button class="btn btn-icon" id="sim-btn-reset">&#x21BA;</button>
+            </div>
+            <div class="frame-counter" id="sim-frame-counter">Step 0 / 0</div>
+          </div>
+
+          <div class="ctrl-section">
+            <h3>Epidemic Curve</h3>
+            <div class="chart-container">
+              <canvas id="sir-curve-chart"></canvas>
+            </div>
+            <div style="display:flex;gap:var(--space-3);margin-top:var(--space-2);font-size:10px">
+              <span style="color:var(--green)">&#9632; Susceptible</span>
+              <span style="color:var(--red)">&#9632; Infected</span>
+              <span style="color:var(--blue)">&#9632; Recovered</span>
+            </div>
+          </div>
+
+          <div class="ctrl-section">
+            <h3>Before / After Comparison</h3>
+            <div id="sim-compare-panel" class="text-sm text-muted">
+              Run both simulations (with and without intervention) to see comparison.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================ BENGALURU GEO MAP LAB ================== -->
+    <section class="section-panel" id="section-geo-map">
+      <div class="section-header">
+        <div class="section-header-left">
+          <div class="section-header-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+          </div>
+          <h2>Bengaluru Geo Map Lab</h2>
+          <span class="complexity-badge">Geo-SIR Pipeline</span>
+        </div>
+        <div id="geo-map-status" class="text-sm text-muted">Initialize map data to run...</div>
+      </div>
+      <div class="info-banner">
+        <div class="dot"></div>
+        Analyze epidemic spread in real Bengaluru wards. Distances are calculated using the Haversine formula, building a proximity network.
+      </div>
+      
+      <div class="lab-layout">
+        <!-- Map Canvas (Left) -->
+        <div class="lab-graph-pane" style="padding:0; position:relative; overflow:hidden;">
+          <div id="geo-leaflet-map" style="width:100%; height:100%; z-index:1;"></div>
+          <!-- Legend Overlay -->
+          <div class="map-legend-overlay" style="position:absolute; bottom:16px; left:16px; background:var(--bg-surface); padding:10px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); z-index:999; font-size:11px; display:flex; flex-direction:column; gap:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+            <div style="font-weight:600; margin-bottom:2px; color:var(--text-heading)">Node States</div>
+            <div style="display:flex; align-items:center; gap:8px;"><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#5cb87a;"></span>Susceptible</div>
+            <div style="display:flex; align-items:center; gap:8px;"><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#e05c5c;"></span>Infected</div>
+            <div style="display:flex; align-items:center; gap:8px;"><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#5b8fd9;"></span>Recovered (Immune)</div>
+            <div style="display:flex; align-items:center; gap:8px;"><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#c9a24e; border: 1px solid #ffffff;"></span>Vaccinated Node (DP)</div>
+          </div>
+        </div>
+
+        <!-- Controls (Right) -->
+        <div class="lab-control-pane">
+          <div class="ctrl-section">
+            <h3>1. Import Ward Coordinates</h3>
+            <div class="form-row">
+              <button class="btn btn-primary full-width" id="geo-btn-sample">Generate Sample Bengaluru Data</button>
+            </div>
+            <div class="or-separator" style="text-align:center; font-size:10px; color:var(--text-muted); margin: 8px 0; text-transform:uppercase; letter-spacing:0.05em;">OR</div>
+            
+            <div class="csv-upload-zone" id="geo-csv-dropzone" style="border:2px dashed var(--border); padding:14px; text-align:center; border-radius:var(--radius-sm); cursor:pointer; background:var(--bg-elevated); transition:border var(--transition);">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" style="margin:0 auto 8px; color:var(--text-secondary)">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+              </svg>
+              <div style="font-size:11px; font-weight:500; color:var(--text-primary)">Upload Ward Coordinates CSV</div>
+              <div style="font-size:9px; color:var(--text-muted); margin-top:2px;">Format: lat, lng, population, name</div>
+              <input type="file" id="geo-csv-input" accept=".csv" style="display:none;" />
+            </div>
+          </div>
+
+          <div class="ctrl-section">
+            <h3>2. Network Parameters</h3>
+            <div class="form-row">
+              <label>Proximity Radius (km) <span class="val-display" id="geo-radius-val">5.0</span></label>
+              <input type="range" id="geo-radius" min="1.0" max="15.0" step="0.5" value="5.0" />
+            </div>
+            <div class="form-row">
+              <label>Intervention Budget <span class="val-display" id="geo-budget-val">10</span></label>
+              <input type="range" id="geo-budget" min="2" max="30" value="10" />
+            </div>
+            <p class="text-xs text-muted">Vaccinating nodes has costs proportional to ward populations (higher population = higher cost).</p>
+          </div>
+
+          <div class="ctrl-section">
+            <h3>3. Epidemiological SIR Params</h3>
+            <div class="form-row">
+              <label>Beta (Transmission) <span class="val-display" id="geo-beta-val">0.40</span></label>
+              <input type="range" id="geo-beta" min="0.05" max="1.0" step="0.05" value="0.40" />
+            </div>
+            <div class="form-row">
+              <label>Gamma (Recovery) <span class="val-display" id="geo-gamma-val">0.08</span></label>
+              <input type="range" id="geo-gamma" min="0.01" max="0.5" step="0.01" value="0.08" />
+            </div>
+            <button class="btn btn-gold full-width" id="geo-btn-run" disabled>Run Analysis Pipeline</button>
+          </div>
+
+          <div class="ctrl-section" id="geo-playback-section" style="display:none;">
+            <h3>4. Simulation Playback</h3>
+            <div class="playback-controls">
+              <button class="btn btn-icon" id="geo-btn-back" title="Step back">&#x23EE;</button>
+              <button class="btn btn-icon btn-primary" id="geo-btn-play" title="Play/Pause">&#x25B6;</button>
+              <button class="btn btn-icon" id="geo-btn-fwd" title="Step forward">&#x23ED;</button>
+              <button class="btn btn-icon" id="geo-btn-reset" title="Reset">&#x21BA;</button>
+            </div>
+            <div class="form-row" style="margin-top: 8px;">
+              <label>Animation speed <span class="val-display" id="geo-speed-val">400ms</span></label>
+              <input type="range" id="geo-speed" min="100" max="1500" step="100" value="400" />
+            </div>
+            <div class="frame-counter" id="geo-frame-counter">Step 0 / 0</div>
+            <div class="toggle-group mt-3" style="width:100%">
+              <button class="toggle-btn active" id="geo-toggle-without" style="flex:1;">Without Intervention</button>
+              <button class="toggle-btn" id="geo-toggle-with" style="flex:1;">With Vaccination</button>
+            </div>
+          </div>
+
+          <div class="ctrl-section" id="geo-results-section" style="display:none;">
+            <h3>5. Epidemic Curves Comparison</h3>
+            <div class="chart-container" style="height:150px;">
+              <canvas id="geo-curve-chart"></canvas>
+            </div>
+            
+            <div style="font-size:12px; font-weight:600; margin-top:14px; margin-bottom:8px; color:var(--text-heading)">Key Statistics</div>
+            <table class="concept-table" style="font-size:11px; width:100%;">
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>No Vacc.</th>
+                  <th>With DP</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Peak Infected</td>
+                  <td id="geo-stat-peak-no">—</td>
+                  <td id="geo-stat-peak-yes">—</td>
+                </tr>
+                <tr>
+                  <td>Total Infected</td>
+                  <td id="geo-stat-total-no">—</td>
+                  <td id="geo-stat-total-yes">—</td>
+                </tr>
+                <tr>
+                  <td>Duration (steps)</td>
+                  <td id="geo-stat-dur-no">—</td>
+                  <td id="geo-stat-dur-yes">—</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div style="font-size:12px; font-weight:600; margin-top:14px; margin-bottom:8px; color:var(--text-heading)">Top 3 Super-Spreader Wards</div>
+            <div id="geo-leaderboard" class="leaderboard" style="font-size:11px; background:var(--bg-elevated); padding:8px; border-radius:var(--radius-sm)">
+              —
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================ CONCEPT MAP ===================== -->
+    <section class="section-panel" id="section-concept-map">
+      <div class="section-header">
+        <div class="section-header-left">
+          <div class="section-header-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+          </div>
+          <h2>Concept Map</h2>
+        </div>
+        <span class="text-sm text-muted">Click any row to jump to that lab</span>
+      </div>
+      <div class="concept-table-wrap">
+        <table class="concept-table">
+          <thead>
+            <tr>
+              <th>Concept</th>
+              <th>Domain</th>
+              <th>Where in this App</th>
+              <th>Complexity</th>
+              <th>File / Function</th>
+            </tr>
+          </thead>
+          <tbody id="concept-map-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main><!-- #main -->
+</div><!-- #app -->
+
+<!-- JavaScript modules -->
+<script type="module" src="/static/js/app.js"></script>
+
+</body>
+</html>
